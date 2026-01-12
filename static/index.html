@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>cURL to Go Converter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1200px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 2.5rem;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+        }
+
+        .input-section, .output-section {
+            margin-bottom: 30px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #curlInput {
+            min-height: 150px;
+        }
+
+        #goOutput {
+            min-height: 400px;
+            background-color: #f8f9fa;
+        }
+
+        .button-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        #convertBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            flex: 1;
+        }
+
+        #convertBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        #convertBtn:active {
+            transform: translateY(0);
+        }
+
+        #convertBtn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #copyBtn {
+            background: #28a745;
+            color: white;
+            padding: 15px 25px;
+        }
+
+        #copyBtn:hover {
+            background: #218838;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>cURL to Go Converter</h1>
+        <p class="subtitle">Paste your cURL command from Firefox's network tab and convert it to Go code</p>
+
+        <div id="errorMessage" class="error hidden"></div>
+        <div id="successMessage" class="success hidden"></div>
+
+        <div class="input-section">
+            <label for="curlInput">cURL Command:</label>
+            <textarea
+                id="curlInput"
+                placeholder="Paste your cURL command here...&#10;&#10;Example:&#10;curl 'https://api.example.com/data' \&#10;  -H 'Accept: application/json' \&#10;  -H 'Authorization: Bearer token123'"
+            ></textarea>
+        </div>
+
+        <div class="button-container">
+            <button id="convertBtn">Convert to Go</button>
+            <button id="copyBtn">Copy Go Code</button>
+        </div>
+
+        <div class="output-section">
+            <label for="goOutput">Generated Go Code:</label>
+            <textarea id="goOutput" readonly placeholder="Your Go code will appear here..."></textarea>
+        </div>
+    </div>
+
+    <script>
+        const curlInput = document.getElementById('curlInput');
+        const goOutput = document.getElementById('goOutput');
+        const convertBtn = document.getElementById('convertBtn');
+        const copyBtn = document.getElementById('copyBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const successMessage = document.getElementById('successMessage');
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+            successMessage.classList.add('hidden');
+            setTimeout(() => {
+                errorMessage.classList.add('hidden');
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            successMessage.textContent = message;
+            successMessage.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            setTimeout(() => {
+                successMessage.classList.add('hidden');
+            }, 3000);
+        }
+
+        convertBtn.addEventListener('click', async () => {
+            const curlCommand = curlInput.value.trim();
+
+            if (!curlCommand) {
+                showError('Please enter a cURL command');
+                return;
+            }
+
+            convertBtn.disabled = true;
+            convertBtn.innerHTML = 'Converting<span class="loading"></span>';
+
+            try {
+                const response = await fetch('/api/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        curl_command: curlCommand
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.error) {
+                    showError(data.error);
+                    goOutput.value = '';
+                } else {
+                    goOutput.value = data.go_code;
+                    showSuccess('Successfully converted to Go code!');
+                }
+            } catch (error) {
+                showError('Failed to convert: ' + error.message);
+            } finally {
+                convertBtn.disabled = false;
+                convertBtn.innerHTML = 'Convert to Go';
+            }
+        });
+
+        copyBtn.addEventListener('click', async () => {
+            const code = goOutput.value;
+
+            if (!code) {
+                showError('No code to copy');
+                return;
+            }
+
+            try {
+                await navigator.clipboard.writeText(code);
+                showSuccess('Code copied to clipboard!');
+            } catch (error) {
+                showError('Failed to copy: ' + error.message);
+            }
+        });
+
+        // Allow Enter+Ctrl to trigger conversion
+        curlInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                convertBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
