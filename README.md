@@ -2,6 +2,8 @@
 
 A web application that converts cURL commands (copied from Firefox's network tab) into executable Go code.
 
+<img width="1217" height="964" alt="screenshot-2026-01-11_22-17-54" src="https://github.com/user-attachments/assets/44c32489-ef85-4fde-bd1f-0777b0acdd73" />
+
 ## Features
 
 - Parse cURL commands and extract:
@@ -151,4 +153,4 @@ Built with:
 
 ## License
 
-MIT
+Apache 2
